@@ -172,9 +172,6 @@ class TechnicalFactors:
         try:
             prices = ensure_numeric_dataframe(prices)
             
-            if prices is None or not isinstance(prices, pd.DataFrame) or prices.empty:
-                raise ValueError("prices 데이터가 올바르지 않습니다. DataFrame 타입이며 비어있지 않아야 합니다.")
-
             if method == 'simple':
                 # 단순 수익률
                 momentum = prices.pct_change(window)
@@ -201,9 +198,6 @@ class TechnicalFactors:
         try:
             prices = ensure_numeric_dataframe(prices)
             
-            if prices is None or not isinstance(prices, pd.DataFrame) or prices.empty:
-                raise ValueError("prices 데이터가 올바르지 않습니다. DataFrame 타입이며 비어있지 않아야 합니다.")
-
             if method == 'zscore':
                 # Z-Score
                 rolling_mean = prices.rolling(window).mean()
@@ -253,10 +247,6 @@ class TechnicalFactors:
         """변동성 팩터"""
         try:
             prices = ensure_numeric_dataframe(prices)
-            
-            if prices is None or not isinstance(prices, pd.DataFrame) or prices.empty:
-                raise ValueError("prices 데이터가 올바르지 않습니다. DataFrame 타입이며 비어있지 않아야 합니다.")
-
             returns = prices.pct_change()
             
             if method == 'realized':
@@ -281,12 +271,6 @@ class TechnicalFactors:
         try:
             volumes = ensure_numeric_dataframe(volumes)
             
-            if volumes is None or not isinstance(volumes, pd.DataFrame) or volumes.empty:
-                raise ValueError("volumes 데이터가 올바르지 않습니다. DataFrame 타입이며 비어있지 않아야 합니다.")
-
-            if method == 'obv' and (prices is None or not isinstance(prices, pd.DataFrame) or prices.empty):
-                raise ValueError("OBV 계산을 위해서는 prices 데이터가 필요합니다.")
-
             if method == 'obv' and prices is not None:
                 # On-Balance Volume
                 prices = ensure_numeric_dataframe(prices)
@@ -333,12 +317,6 @@ class FundamentalFactors:
         try:
             prices = ensure_numeric_dataframe(prices)
             
-            if prices is None or not isinstance(prices, pd.DataFrame) or prices.empty:
-                raise ValueError("prices 데이터가 올바르지 않습니다. DataFrame 타입이며 비어있지 않아야 합니다.")
-
-            if method == 'pbr' and (market_caps is None or not isinstance(market_caps, pd.DataFrame) or market_caps.empty):
-                raise ValueError("PBR 계산을 위해서는 market_caps 데이터가 필요합니다.")
-
             if method == 'pbr' and market_caps is not None:
                 # 단순화된 PBR (시가/장부가 비율 대신 상대적 가치 사용)
                 market_caps = ensure_numeric_dataframe(market_caps)
@@ -379,7 +357,10 @@ class MachineLearningFactors:
         """Random Forest 팩터"""
         try:
             features = ensure_numeric_dataframe(features)
-            target = ensure_numeric_series(target)
+            if isinstance(target, pd.Series):
+                target = pd.to_numeric(target, errors='coerce').fillna(0)
+            else:
+                target = pd.Series(target).fillna(0)
             
             factor_values = pd.Series(index=target.index, dtype=float)
             
@@ -408,7 +389,7 @@ class MachineLearningFactors:
                 except Exception as e:
                     factor_values.iloc[i] = 0
             
-            return ensure_numeric_series(factor_values)
+            return pd.to_numeric(factor_values, errors='coerce').fillna(0)
             
         except Exception as e:
             logger.error(f"Random Forest 팩터 계산 오류: {str(e)}")
@@ -447,7 +428,10 @@ class MachineLearningFactors:
         """XGBoost 팩터"""
         try:
             features = ensure_numeric_dataframe(features.fillna(0))
-            target = ensure_numeric_series(target.fillna(0))
+            if isinstance(target, pd.Series):
+                target = pd.to_numeric(target, errors='coerce').fillna(0)
+            else:
+                target = pd.Series(target).fillna(0)
             
             factor_values = pd.Series(index=target.index, dtype=float)
             factor_values[:] = 0.0
@@ -479,7 +463,7 @@ class MachineLearningFactors:
                 except Exception:
                     factor_values.iloc[i] = 0
             
-            return ensure_numeric_series(factor_values)
+            return pd.to_numeric(factor_values, errors='coerce').fillna(0)
             
         except Exception as e:
             logger.error(f"XGBoost 팩터 계산 오류: {str(e)}")
@@ -610,12 +594,13 @@ class AdvancedTechnicalFactors:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
     
-    def rsi_factor(self, prices: pd.DataFrame, period: int = 14, **kwargs):
-        """
-        RSI(상대강도지수) 팩터 계산 함수
-        **kwargs를 추가하여, window 등 불필요한 인자가 넘어와도 무시됩니다.
-        """
+    def rsi_factor(self, prices: pd.DataFrame, period: int = 14, window: int = None) -> pd.DataFrame:
+        """RSI (Relative Strength Index) 팩터"""
         try:
+            # window 매개변수가 전달되면 period로 사용
+            if window is not None:
+                period = window
+            
             prices = ensure_numeric_dataframe(prices)
             rsi_values = pd.DataFrame(index=prices.index, columns=prices.columns)
             
@@ -641,12 +626,13 @@ class AdvancedTechnicalFactors:
             self.logger.error(f"RSI 팩터 계산 오류: {str(e)}")
             return pd.DataFrame()
     
-    def bollinger_bands_factor(self, prices: pd.DataFrame, period: int = 20, std_dev: float = 2, **kwargs):
-        """
-        볼린저 밴드 팩터 계산 함수
-        **kwargs를 추가하여, window 등 불필요한 인자가 넘어와도 무시됩니다.
-        """
+    def bollinger_bands_factor(self, prices: pd.DataFrame, period: int = 20, std_dev: float = 2, window: int = None) -> pd.DataFrame:
+        """볼린저 밴드 기반 팩터 (가격 위치)"""
         try:
+            # window 매개변수가 전달되면 period로 사용
+            if window is not None:
+                period = window
+                
             prices = ensure_numeric_dataframe(prices)
             bb_position = pd.DataFrame(index=prices.index, columns=prices.columns)
             
@@ -671,12 +657,13 @@ class AdvancedTechnicalFactors:
             self.logger.error(f"볼린저 밴드 팩터 계산 오류: {str(e)}")
             return pd.DataFrame()
     
-    def zscore_factor(self, prices: pd.DataFrame, lookback: int = 60, **kwargs):
-        """
-        Z-Score 팩터 계산 함수
-        **kwargs를 추가하여, window 등 불필요한 인자가 넘어와도 무시됩니다.
-        """
+    def zscore_factor(self, prices: pd.DataFrame, lookback: int = 60, window: int = None) -> pd.DataFrame:
+        """Z-Score 팩터 (표준화된 가격 위치)"""
         try:
+            # window 매개변수가 전달되면 lookback으로 사용
+            if window is not None:
+                lookback = window
+                
             prices = ensure_numeric_dataframe(prices)
             returns = prices.pct_change()
             
@@ -699,12 +686,13 @@ class AdvancedTechnicalFactors:
             self.logger.error(f"Z-Score 팩터 계산 오류: {str(e)}")
             return pd.DataFrame()
     
-    def correlation_factor(self, prices: pd.DataFrame, market_prices: pd.Series, period: int = 30, **kwargs) -> pd.DataFrame:
-        """
-        상관계수 팩터 계산 함수
-        **kwargs를 추가하여, window 등 불필요한 인자가 넘어와도 무시됩니다.
-        """
+    def correlation_factor(self, prices: pd.DataFrame, market_prices: pd.Series, period: int = 30, window: int = None) -> pd.DataFrame:
+        """시장과의 상관계수 팩터"""
         try:
+            # window 매개변수가 전달되면 period로 사용
+            if window is not None:
+                period = window
+                
             prices = ensure_numeric_dataframe(prices)
             market_prices = ensure_numeric_series(market_prices)
             
@@ -1347,19 +1335,30 @@ class EnhancedFactorLibrary:
     
     def _calculate_ml_factor(self, factor_name: str, data: Dict, **kwargs) -> Union[pd.DataFrame, pd.Series]:
         """머신러닝 팩터 계산 (확장됨)"""
-        if factor_name == 'random_forest':
-            features = pd.concat([data['prices'].pct_change(), data.get('volumes', data['prices']).pct_change()], axis=1)
-            target = data['returns'].mean(axis=1) if 'returns' in data else data['prices'].pct_change().mean(axis=1)
-            return self.ml_factors.random_forest_factor(features, target, **kwargs)
-        elif factor_name == 'pca':
-            features = pd.concat([data['prices'].pct_change(), data.get('volumes', data['prices']).pct_change()], axis=1)
-            return self.ml_factors.pca_factor(features, **kwargs)
-        elif factor_name == 'xgboost':
-            features = pd.concat([data['prices'].pct_change(), data.get('volumes', data['prices']).pct_change()], axis=1)
-            target = data['returns'].mean(axis=1) if 'returns' in data else data['prices'].pct_change().mean(axis=1)
-            return self.ml_factors.xgboost_factor(features, target, **kwargs)
-        else:
-            raise ValueError(f"지원하지 않는 머신러닝 팩터: {factor_name}")
+        try:
+            # 기본 features 준비
+            price_returns = data['prices'].pct_change().fillna(0)
+            volume_returns = data.get('volumes', data['prices']).pct_change().fillna(0)
+            
+            # NaN 컬럼명 문제 해결
+            price_returns.columns = [f'price_{i}' for i in range(len(price_returns.columns))]
+            volume_returns.columns = [f'volume_{i}' for i in range(len(volume_returns.columns))]
+            
+            features = pd.concat([price_returns, volume_returns], axis=1).fillna(0)
+            
+            if factor_name == 'random_forest':
+                target = data['returns'].mean(axis=1).fillna(0) if 'returns' in data else data['prices'].pct_change().mean(axis=1).fillna(0)
+                return self.ml_factors.random_forest_factor(features, target, **kwargs)
+            elif factor_name == 'pca':
+                return self.ml_factors.pca_factor(features, **kwargs)
+            elif factor_name == 'xgboost':
+                target = data['returns'].mean(axis=1).fillna(0) if 'returns' in data else data['prices'].pct_change().mean(axis=1).fillna(0)
+                return self.ml_factors.xgboost_factor(features, target, **kwargs)
+            else:
+                raise ValueError(f"지원하지 않는 머신러닝 팩터: {factor_name}")
+        except Exception as e:
+            logger.error(f"머신러닝 팩터 계산 오류 ({factor_name}): {str(e)}")
+            return pd.DataFrame()
     
     def _calculate_risk_factor(self, factor_name: str, data: Dict, **kwargs) -> pd.DataFrame:
         """리스크 팩터 계산"""

@@ -200,6 +200,10 @@ def safe_calculate_factor(factor_type: str, factor_name: str, data: Dict, **kwar
         else:
             factor_df = factor_values
         
+        # 무한값과 NaN 제거
+        factor_df = factor_df.replace([np.inf, -np.inf], np.nan)
+        factor_df = factor_df.dropna(how='all')
+        
         st.session_state.db_manager.save_factor_values(factor_id, factor_df)
         
         return factor_values, factor_id
@@ -393,16 +397,11 @@ def render_factor_generator():
     """팩터 생성 페이지"""
     st.title("🔧 팩터 생성기")
     
-    # None 체크 추가: 데이터가 없으면 함수 종료
     if st.session_state.sample_data is None:
         st.warning("⚠️ 먼저 사이드바에서 데이터를 로드해주세요.")
         return
     
     data = st.session_state.sample_data
-    # None 체크 추가: 데이터가 None이거나 prices가 없으면 함수 종료
-    if data is None or 'prices' not in data or data['prices'] is None or data['prices'].empty or len(data['prices'].index) == 0:
-        st.error("로드된 데이터가 비어있습니다. 사이드바에서 데이터를 다시 로드해주세요.")
-        return
     
     # 데이터 유효성 검증
     if data['prices'].empty or len(data['prices'].index) == 0:
@@ -444,11 +443,7 @@ def render_factor_generator():
         render_enhanced_factors(data, category)
 
 def render_technical_factors(data):
-    """기술적 분석 팩터 생성 인터페이스"""
-    # 입력 데이터 체크: 가격 데이터가 없으면 함수 종료
-    if data is None or 'prices' not in data or data['prices'] is None or data['prices'].empty:
-        st.error("가격 데이터가 비어있습니다. 먼저 데이터를 로드하세요.")
-        return
+    """기술적 팩터 생성 인터페이스"""
     st.subheader("📈 기술적 분석 팩터")
     
     factor_type = st.selectbox(
@@ -474,18 +469,16 @@ def render_technical_factors(data):
             )
             
             if st.button("모멘텀 팩터 계산", type="primary"):
-                # 팩터 계산 함수 호출 전 입력값 검증
-                try:
-                    result = safe_calculate_factor('technical', 'momentum', data, window=window, method=method)
-                    # 팩터 계산 결과가 None이거나 empty면 에러 메시지 출력
-                    if result is None or result[0] is None or (hasattr(result[0], 'empty') and result[0].empty):
-                        st.error("팩터 계산에 실패했습니다.")
-                        return
-                    factor_values, factor_id = result
-                    st.session_state.calculated_factors['momentum'] = factor_values
-                    st.success(f"모멘텀 팩터 계산 완료! (ID: {factor_id})")
-                except Exception as e:
-                    st.error(f"팩터 계산 중 오류: {str(e)}")
+                with st.spinner("팩터 계산 중..."):
+                    result = safe_calculate_factor(
+                        'technical', 'momentum', data, 
+                        window=window, method=method
+                    )
+                    
+                    if result[0] is not None:
+                        factor_values, factor_id = result
+                        st.session_state.calculated_factors['momentum'] = factor_values
+                        st.success(f"모멘텀 팩터 계산 완료! (ID: {factor_id})")
         
         elif factor_type == "평균회귀":
             st.markdown("#### 평균회귀 팩터 설정")
@@ -502,16 +495,16 @@ def render_technical_factors(data):
             )
             
             if st.button("평균회귀 팩터 계산", type="primary"):
-                try:
-                    result = safe_calculate_factor('technical', 'mean_reversion', data, window=window, method=method)
-                    if result is None or result[0] is None or (hasattr(result[0], 'empty') and result[0].empty):
-                        st.error("팩터 계산에 실패했습니다.")
-                        return
-                    factor_values, factor_id = result
-                    st.session_state.calculated_factors['mean_reversion'] = factor_values
-                    st.success(f"평균회귀 팩터 계산 완료! (ID: {factor_id})")
-                except Exception as e:
-                    st.error(f"팩터 계산 중 오류: {str(e)}")
+                with st.spinner("팩터 계산 중..."):
+                    result = safe_calculate_factor(
+                        'technical', 'mean_reversion', data, 
+                        window=window, method=method
+                    )
+                    
+                    if result[0] is not None:
+                        factor_values, factor_id = result
+                        st.session_state.calculated_factors['mean_reversion'] = factor_values
+                        st.success(f"평균회귀 팩터 계산 완료! (ID: {factor_id})")
         
         elif factor_type == "변동성":
             st.markdown("#### 변동성 팩터 설정")
@@ -527,16 +520,16 @@ def render_technical_factors(data):
             )
             
             if st.button("변동성 팩터 계산", type="primary"):
-                try:
-                    result = safe_calculate_factor('technical', 'volatility', data, window=window, method=method)
-                    if result is None or result[0] is None or (hasattr(result[0], 'empty') and result[0].empty):
-                        st.error("팩터 계산에 실패했습니다.")
-                        return
-                    factor_values, factor_id = result
-                    st.session_state.calculated_factors['volatility'] = factor_values
-                    st.success(f"변동성 팩터 계산 완료! (ID: {factor_id})")
-                except Exception as e:
-                    st.error(f"팩터 계산 중 오류: {str(e)}")
+                with st.spinner("팩터 계산 중..."):
+                    result = safe_calculate_factor(
+                        'technical', 'volatility', data, 
+                        window=window, method=method
+                    )
+                    
+                    if result[0] is not None:
+                        factor_values, factor_id = result
+                        st.session_state.calculated_factors['volatility'] = factor_values
+                        st.success(f"변동성 팩터 계산 완료! (ID: {factor_id})")
         
         elif factor_type == "거래량":
             st.markdown("#### 거래량 팩터 설정")
@@ -552,16 +545,16 @@ def render_technical_factors(data):
             )
             
             if st.button("거래량 팩터 계산", type="primary"):
-                try:
-                    result = safe_calculate_factor('technical', 'volume', data, method=method)
-                    if result is None or result[0] is None or (hasattr(result[0], 'empty') and result[0].empty):
-                        st.error("팩터 계산에 실패했습니다.")
-                        return
-                    factor_values, factor_id = result
-                    st.session_state.calculated_factors['volume'] = factor_values
-                    st.success(f"거래량 팩터 계산 완료! (ID: {factor_id})")
-                except Exception as e:
-                    st.error(f"팩터 계산 중 오류: {str(e)}")
+                with st.spinner("팩터 계산 중..."):
+                    result = safe_calculate_factor(
+                        'technical', 'volume', data, 
+                        method=method
+                    )
+                    
+                    if result[0] is not None:
+                        factor_values, factor_id = result
+                        st.session_state.calculated_factors['volume'] = factor_values
+                        st.success(f"거래량 팩터 계산 완료! (ID: {factor_id})")
     
     with col2:
         st.markdown("#### 팩터 미리보기")
@@ -583,10 +576,6 @@ def render_technical_factors(data):
 
 def render_fundamental_factors(data):
     """펀더멘털 팩터 생성 인터페이스"""
-    # 입력 데이터 체크: 가격 데이터가 없으면 함수 종료
-    if data is None or 'prices' not in data or data['prices'] is None or data['prices'].empty:
-        st.error("가격 데이터가 비어있습니다. 먼저 데이터를 로드하세요.")
-        return
     st.subheader("💰 펀더멘털 분석 팩터")
     
     factor_type = st.selectbox(
@@ -610,16 +599,16 @@ def render_fundamental_factors(data):
             )
             
             if st.button("밸류에이션 팩터 계산", type="primary"):
-                try:
-                    result = safe_calculate_factor('fundamental', 'valuation', data, method=method)
-                    if result is None or result[0] is None or (hasattr(result[0], 'empty') and result[0].empty):
-                        st.error("팩터 계산에 실패했습니다.")
-                        return
-                    factor_values, factor_id = result
-                    st.session_state.calculated_factors['valuation'] = factor_values
-                    st.success(f"밸류에이션 팩터 계산 완료! (ID: {factor_id})")
-                except Exception as e:
-                    st.error(f"팩터 계산 중 오류: {str(e)}")
+                with st.spinner("팩터 계산 중..."):
+                    result = safe_calculate_factor(
+                        'fundamental', 'valuation', data, 
+                        method=method
+                    )
+                    
+                    if result[0] is not None:
+                        factor_values, factor_id = result
+                        st.session_state.calculated_factors['valuation'] = factor_values
+                        st.success(f"밸류에이션 팩터 계산 완료! (ID: {factor_id})")
         
         elif factor_type == "수익성":
             st.markdown("#### 수익성 팩터 설정")
@@ -627,16 +616,16 @@ def render_fundamental_factors(data):
             window = st.slider("수익성 계산 기간 (일)", 30, 756, 252)
             
             if st.button("수익성 팩터 계산", type="primary"):
-                try:
-                    result = safe_calculate_factor('fundamental', 'profitability', data, window=window)
-                    if result is None or result[0] is None or (hasattr(result[0], 'empty') and result[0].empty):
-                        st.error("팩터 계산에 실패했습니다.")
-                        return
-                    factor_values, factor_id = result
-                    st.session_state.calculated_factors['profitability'] = factor_values
-                    st.success(f"수익성 팩터 계산 완료! (ID: {factor_id})")
-                except Exception as e:
-                    st.error(f"팩터 계산 중 오류: {str(e)}")
+                with st.spinner("팩터 계산 중..."):
+                    result = safe_calculate_factor(
+                        'fundamental', 'profitability', data, 
+                        window=window
+                    )
+                    
+                    if result[0] is not None:
+                        factor_values, factor_id = result
+                        st.session_state.calculated_factors['profitability'] = factor_values
+                        st.success(f"수익성 팩터 계산 완료! (ID: {factor_id})")
     
     with col2:
         st.markdown("#### 팩터 미리보기")
@@ -650,10 +639,6 @@ def render_fundamental_factors(data):
 
 def render_ml_factors(data):
     """머신러닝 팩터 생성 인터페이스"""
-    # 입력 데이터 체크: 가격 데이터가 없으면 함수 종료
-    if data is None or 'prices' not in data or data['prices'] is None or data['prices'].empty:
-        st.error("가격 데이터가 비어있습니다. 먼저 데이터를 로드하세요.")
-        return
     st.subheader("🤖 머신러닝 기반 팩터")
     
     factor_type = st.selectbox(
@@ -671,16 +656,16 @@ def render_ml_factors(data):
             n_estimators = st.slider("트리 개수", 50, 200, 100)
             
             if st.button("Random Forest 팩터 계산", type="primary"):
-                try:
-                    result = safe_calculate_factor('machine_learning', 'random_forest', data, window=window, n_estimators=n_estimators)
-                    if result is None or result[0] is None or (hasattr(result[0], 'empty') and result[0].empty):
-                        st.error("팩터 계산에 실패했습니다.")
-                        return
-                    factor_values, factor_id = result
-                    st.session_state.calculated_factors['random_forest'] = factor_values
-                    st.success(f"Random Forest 팩터 계산 완료! (ID: {factor_id})")
-                except Exception as e:
-                    st.error(f"팩터 계산 중 오류: {str(e)}")
+                with st.spinner("팩터 계산 중... (시간이 걸릴 수 있습니다)"):
+                    result = safe_calculate_factor(
+                        'machine_learning', 'random_forest', data, 
+                        window=window, n_estimators=n_estimators
+                    )
+                    
+                    if result[0] is not None:
+                        factor_values, factor_id = result
+                        st.session_state.calculated_factors['random_forest'] = factor_values
+                        st.success(f"Random Forest 팩터 계산 완료! (ID: {factor_id})")
         
         elif factor_type == "PCA":
             st.markdown("#### PCA 팩터 설정")
@@ -688,16 +673,16 @@ def render_ml_factors(data):
             n_components = st.slider("주성분 개수", 2, 10, 5)
             
             if st.button("PCA 팩터 계산", type="primary"):
-                try:
-                    result = safe_calculate_factor('machine_learning', 'pca', data, n_components=n_components)
-                    if result is None or result[0] is None or (hasattr(result[0], 'empty') and result[0].empty):
-                        st.error("팩터 계산에 실패했습니다.")
-                        return
-                    factor_values, factor_id = result
-                    st.session_state.calculated_factors['pca'] = factor_values
-                    st.success(f"PCA 팩터 계산 완료! (ID: {factor_id})")
-                except Exception as e:
-                    st.error(f"팩터 계산 중 오류: {str(e)}")
+                with st.spinner("팩터 계산 중..."):
+                    result = safe_calculate_factor(
+                        'machine_learning', 'pca', data, 
+                        n_components=n_components
+                    )
+                    
+                    if result[0] is not None:
+                        factor_values, factor_id = result
+                        st.session_state.calculated_factors['pca'] = factor_values
+                        st.success(f"PCA 팩터 계산 완료! (ID: {factor_id})")
     
     with col2:
         st.markdown("#### 팩터 미리보기")
@@ -711,10 +696,6 @@ def render_ml_factors(data):
 
 def render_risk_factors(data):
     """리스크 팩터 생성 인터페이스"""
-    # 입력 데이터 체크: 가격 데이터가 없으면 함수 종료
-    if data is None or 'prices' not in data or data['prices'] is None or data['prices'].empty:
-        st.error("가격 데이터가 비어있습니다. 먼저 데이터를 로드하세요.")
-        return
     st.subheader("⚠️ 리스크 팩터")
     
     factor_type = st.selectbox(
@@ -731,16 +712,16 @@ def render_risk_factors(data):
             window = st.slider("베타 계산 기간 (일)", 60, 504, 252)
             
             if st.button("베타 팩터 계산", type="primary"):
-                try:
-                    result = safe_calculate_factor('risk', 'beta', data, window=window)
-                    if result is None or result[0] is None or (hasattr(result[0], 'empty') and result[0].empty):
-                        st.error("팩터 계산에 실패했습니다.")
-                        return
-                    factor_values, factor_id = result
-                    st.session_state.calculated_factors['beta'] = factor_values
-                    st.success(f"베타 팩터 계산 완료! (ID: {factor_id})")
-                except Exception as e:
-                    st.error(f"팩터 계산 중 오류: {str(e)}")
+                with st.spinner("팩터 계산 중..."):
+                    result = safe_calculate_factor(
+                        'risk', 'beta', data, 
+                        window=window
+                    )
+                    
+                    if result[0] is not None:
+                        factor_values, factor_id = result
+                        st.session_state.calculated_factors['beta'] = factor_values
+                        st.success(f"베타 팩터 계산 완료! (ID: {factor_id})")
         
         elif factor_type == "하방 리스크":
             st.markdown("#### 하방 리스크 팩터 설정")
@@ -748,16 +729,16 @@ def render_risk_factors(data):
             window = st.slider("리스크 계산 기간 (일)", 60, 504, 252)
             
             if st.button("하방 리스크 팩터 계산", type="primary"):
-                try:
-                    result = safe_calculate_factor('risk', 'downside_risk', data, window=window)
-                    if result is None or result[0] is None or (hasattr(result[0], 'empty') and result[0].empty):
-                        st.error("팩터 계산에 실패했습니다.")
-                        return
-                    factor_values, factor_id = result
-                    st.session_state.calculated_factors['downside_risk'] = factor_values
-                    st.success(f"하방 리스크 팩터 계산 완료! (ID: {factor_id})")
-                except Exception as e:
-                    st.error(f"팩터 계산 중 오류: {str(e)}")
+                with st.spinner("팩터 계산 중..."):
+                    result = safe_calculate_factor(
+                        'risk', 'downside_risk', data, 
+                        window=window
+                    )
+                    
+                    if result[0] is not None:
+                        factor_values, factor_id = result
+                        st.session_state.calculated_factors['downside_risk'] = factor_values
+                        st.success(f"하방 리스크 팩터 계산 완료! (ID: {factor_id})")
     
     with col2:
         st.markdown("#### 팩터 미리보기")
@@ -774,14 +755,14 @@ def render_backtesting():
     """백테스팅 페이지"""
     st.title("📊 백테스팅")
     
-    # None 체크 추가: 데이터가 없으면 함수 종료
     if st.session_state.sample_data is None:
         st.warning("⚠️ 먼저 시장 데이터를 로드해주세요.")
         return
     
     data = st.session_state.sample_data
-    # None 체크 추가: 데이터가 None이거나 prices가 없으면 함수 종료
-    if data is None or 'prices' not in data or data['prices'] is None or data['prices'].empty or len(data['prices'].index) == 0:
+    
+    # 데이터 유효성 검증
+    if data['prices'].empty or len(data['prices'].index) == 0:
         st.error("로드된 데이터가 비어있습니다. 사이드바에서 데이터를 다시 로드해주세요.")
         return
     
@@ -964,14 +945,14 @@ def render_portfolio_optimization():
     """포트폴리오 최적화 페이지"""
     st.title("⚖️ 포트폴리오 최적화")
     
-    # None 체크 추가: 데이터가 없으면 함수 종료
     if st.session_state.sample_data is None:
         st.warning("⚠️ 먼저 시장 데이터를 로드해주세요.")
         return
     
     data = st.session_state.sample_data
-    # None 체크 추가: 데이터가 None이거나 prices가 없으면 함수 종료
-    if data is None or 'prices' not in data or data['prices'] is None or data['prices'].empty or len(data['prices'].index) == 0:
+    
+    # 데이터 유효성 검증
+    if data['prices'].empty or len(data['prices'].index) == 0:
         st.error("로드된 데이터가 비어있습니다. 사이드바에서 데이터를 다시 로드해주세요.")
         return
     
@@ -1333,10 +1314,6 @@ def render_data_management():
 
 def render_enhanced_factors(data, category):
     """향상된 팩터 인터페이스"""
-    # 입력 데이터 체크: 가격 데이터가 없으면 함수 종료
-    if data is None or 'prices' not in data or data['prices'] is None or data['prices'].empty:
-        st.error("가격 데이터가 비어있습니다. 먼저 데이터를 로드하세요.")
-        return
     st.subheader(f"🔬 {category.replace('_', ' ').title()} 팩터")
     
     # 사용 가능한 팩터 목록 가져오기
@@ -1404,37 +1381,49 @@ def render_enhanced_factors(data, category):
                     factor_result = enhanced_library.calculate_factor(
                         category, selected_factor, data, **kwargs
                     )
-                    # 팩터 계산 결과가 None이거나 empty면 에러 메시지 출력
-                    if factor_result is None or (hasattr(factor_result, 'empty') and factor_result.empty):
-                        st.error("팩터 계산에 실패했습니다.")
-                        return
-                    factor_key = f"{category}_{selected_factor}"
-                    st.session_state.calculated_factors[factor_key] = factor_result
                     
-                    # 데이터베이스에 저장
-                    factor_id = st.session_state.db_manager.save_factor_definition(
-                        name=factor_key,
-                        category=category,
-                        description=factor_description,
-                        parameters=kwargs
-                    )
-                    
-                    if factor_id:
-                        st.session_state.db_manager.save_factor_values(
-                            factor_id, factor_result, data.get('returns', data['prices'].pct_change())
+                    if factor_result is not None and not factor_result.empty:
+                        # 결과 저장
+                        factor_key = f"{category}_{selected_factor}"
+                        st.session_state.calculated_factors[factor_key] = factor_result
+                        
+                        # 데이터베이스에 저장
+                        factor_id = st.session_state.db_manager.save_factor_definition(
+                            name=factor_key,
+                            category=category,
+                            description=factor_description,
+                            parameters=kwargs
                         )
-                    
-                    st.success(f"✅ {selected_factor} 팩터가 계산되었습니다!")
-                    
-                    # 미리보기 표시
-                    if isinstance(factor_result, pd.DataFrame):
-                        st.line_chart(factor_result.tail(50))
-                        # 기본 통계
-                        st.write("**기본 통계**")
-                        stats = factor_result.describe()
-                        st.dataframe(stats.tail(3))  # count, mean, std만 표시
+                        
+                        if factor_id:
+                            # 무한값과 NaN 제거
+                            clean_result = factor_result.copy()
+                            if isinstance(clean_result, pd.DataFrame):
+                                clean_result = clean_result.replace([np.inf, -np.inf], np.nan)
+                                clean_result = clean_result.dropna(how='all')
+                            elif isinstance(clean_result, pd.Series):
+                                clean_result = clean_result.replace([np.inf, -np.inf], np.nan)
+                                clean_result = clean_result.dropna()
+                            
+                            st.session_state.db_manager.save_factor_values(
+                                factor_id, clean_result
+                            )
+                        
+                        st.success(f"✅ {selected_factor} 팩터가 계산되었습니다!")
+                        
+                        # 미리보기 표시
+                        if isinstance(factor_result, pd.DataFrame):
+                            st.line_chart(factor_result.tail(50))
+                            
+                            # 기본 통계
+                            st.write("**기본 통계**")
+                            stats = factor_result.describe()
+                            st.dataframe(stats.tail(3))  # count, mean, std만 표시
+                        else:
+                            st.line_chart(factor_result.tail(50))
+                            
                     else:
-                        st.line_chart(factor_result.tail(50))
+                        st.error("팩터 계산에 실패했습니다.")
                         
             except Exception as e:
                 st.error(f"팩터 계산 오류: {str(e)}")
@@ -1443,18 +1432,18 @@ def render_enhanced_factors(data, category):
     factor_key = f"{category}_{selected_factor}"
     if factor_key in st.session_state.calculated_factors:
         st.subheader("📈 최신 계산 결과")
+        
         latest_result = st.session_state.calculated_factors[factor_key]
-        # None 체크: 팩터 결과가 None이면 에러 표시
-        if latest_result is None:
-            st.error("팩터 결과가 없습니다.")
-            return
+        
         col1, col2 = st.columns(2)
+        
         with col1:
             st.write("**최근 팩터 값**")
             if isinstance(latest_result, pd.DataFrame):
                 st.dataframe(latest_result.tail(10))
             else:
                 st.dataframe(pd.DataFrame(latest_result.tail(10)))
+        
         with col2:
             st.write("**팩터 성과 통계**")
             if isinstance(latest_result, pd.DataFrame):

@@ -17,6 +17,7 @@ import logging
 
 # 최적화 라이브러리
 from scipy.optimize import minimize
+from scipy import stats
 import cvxpy as cp
 
 # 시각화 라이브러리
