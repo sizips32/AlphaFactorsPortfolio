@@ -172,6 +172,9 @@ class TechnicalFactors:
         try:
             prices = ensure_numeric_dataframe(prices)
             
+            if prices is None or not isinstance(prices, pd.DataFrame) or prices.empty:
+                raise ValueError("prices 데이터가 올바르지 않습니다. DataFrame 타입이며 비어있지 않아야 합니다.")
+
             if method == 'simple':
                 # 단순 수익률
                 momentum = prices.pct_change(window)
@@ -198,6 +201,9 @@ class TechnicalFactors:
         try:
             prices = ensure_numeric_dataframe(prices)
             
+            if prices is None or not isinstance(prices, pd.DataFrame) or prices.empty:
+                raise ValueError("prices 데이터가 올바르지 않습니다. DataFrame 타입이며 비어있지 않아야 합니다.")
+
             if method == 'zscore':
                 # Z-Score
                 rolling_mean = prices.rolling(window).mean()
@@ -247,6 +253,10 @@ class TechnicalFactors:
         """변동성 팩터"""
         try:
             prices = ensure_numeric_dataframe(prices)
+            
+            if prices is None or not isinstance(prices, pd.DataFrame) or prices.empty:
+                raise ValueError("prices 데이터가 올바르지 않습니다. DataFrame 타입이며 비어있지 않아야 합니다.")
+
             returns = prices.pct_change()
             
             if method == 'realized':
@@ -271,6 +281,12 @@ class TechnicalFactors:
         try:
             volumes = ensure_numeric_dataframe(volumes)
             
+            if volumes is None or not isinstance(volumes, pd.DataFrame) or volumes.empty:
+                raise ValueError("volumes 데이터가 올바르지 않습니다. DataFrame 타입이며 비어있지 않아야 합니다.")
+
+            if method == 'obv' and (prices is None or not isinstance(prices, pd.DataFrame) or prices.empty):
+                raise ValueError("OBV 계산을 위해서는 prices 데이터가 필요합니다.")
+
             if method == 'obv' and prices is not None:
                 # On-Balance Volume
                 prices = ensure_numeric_dataframe(prices)
@@ -317,6 +333,12 @@ class FundamentalFactors:
         try:
             prices = ensure_numeric_dataframe(prices)
             
+            if prices is None or not isinstance(prices, pd.DataFrame) or prices.empty:
+                raise ValueError("prices 데이터가 올바르지 않습니다. DataFrame 타입이며 비어있지 않아야 합니다.")
+
+            if method == 'pbr' and (market_caps is None or not isinstance(market_caps, pd.DataFrame) or market_caps.empty):
+                raise ValueError("PBR 계산을 위해서는 market_caps 데이터가 필요합니다.")
+
             if method == 'pbr' and market_caps is not None:
                 # 단순화된 PBR (시가/장부가 비율 대신 상대적 가치 사용)
                 market_caps = ensure_numeric_dataframe(market_caps)
@@ -588,8 +610,11 @@ class AdvancedTechnicalFactors:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
     
-    def rsi_factor(self, prices: pd.DataFrame, period: int = 14) -> pd.DataFrame:
-        """RSI (Relative Strength Index) 팩터"""
+    def rsi_factor(self, prices: pd.DataFrame, period: int = 14, **kwargs):
+        """
+        RSI(상대강도지수) 팩터 계산 함수
+        **kwargs를 추가하여, window 등 불필요한 인자가 넘어와도 무시됩니다.
+        """
         try:
             prices = ensure_numeric_dataframe(prices)
             rsi_values = pd.DataFrame(index=prices.index, columns=prices.columns)
@@ -616,8 +641,11 @@ class AdvancedTechnicalFactors:
             self.logger.error(f"RSI 팩터 계산 오류: {str(e)}")
             return pd.DataFrame()
     
-    def bollinger_bands_factor(self, prices: pd.DataFrame, period: int = 20, std_dev: float = 2) -> pd.DataFrame:
-        """볼린저 밴드 기반 팩터 (가격 위치)"""
+    def bollinger_bands_factor(self, prices: pd.DataFrame, period: int = 20, std_dev: float = 2, **kwargs):
+        """
+        볼린저 밴드 팩터 계산 함수
+        **kwargs를 추가하여, window 등 불필요한 인자가 넘어와도 무시됩니다.
+        """
         try:
             prices = ensure_numeric_dataframe(prices)
             bb_position = pd.DataFrame(index=prices.index, columns=prices.columns)
@@ -643,8 +671,11 @@ class AdvancedTechnicalFactors:
             self.logger.error(f"볼린저 밴드 팩터 계산 오류: {str(e)}")
             return pd.DataFrame()
     
-    def zscore_factor(self, prices: pd.DataFrame, lookback: int = 60) -> pd.DataFrame:
-        """Z-Score 팩터 (표준화된 가격 위치)"""
+    def zscore_factor(self, prices: pd.DataFrame, lookback: int = 60, **kwargs):
+        """
+        Z-Score 팩터 계산 함수
+        **kwargs를 추가하여, window 등 불필요한 인자가 넘어와도 무시됩니다.
+        """
         try:
             prices = ensure_numeric_dataframe(prices)
             returns = prices.pct_change()
@@ -668,8 +699,11 @@ class AdvancedTechnicalFactors:
             self.logger.error(f"Z-Score 팩터 계산 오류: {str(e)}")
             return pd.DataFrame()
     
-    def correlation_factor(self, prices: pd.DataFrame, market_prices: pd.Series, period: int = 30) -> pd.DataFrame:
-        """시장과의 상관계수 팩터"""
+    def correlation_factor(self, prices: pd.DataFrame, market_prices: pd.Series, period: int = 30, **kwargs) -> pd.DataFrame:
+        """
+        상관계수 팩터 계산 함수
+        **kwargs를 추가하여, window 등 불필요한 인자가 넘어와도 무시됩니다.
+        """
         try:
             prices = ensure_numeric_dataframe(prices)
             market_prices = ensure_numeric_series(market_prices)
