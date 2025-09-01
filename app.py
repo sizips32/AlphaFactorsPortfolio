@@ -31,6 +31,38 @@ from alpha_factor_library import (
 from backtesting_engine import BacktestEngine, BacktestConfig, BacktestVisualizer
 from portfolio_optimizer import PortfolioOptimizer, OptimizationConstraints
 
+# 추가 분석 모듈들
+try:
+    # Dynamic Hedging 모듈
+    import dynamic_hedging
+    from dynamic_hedging import (
+        FactorTimingModel, VolatilityOverlay, TailRiskHedging
+    )
+    DYNAMIC_HEDGING_AVAILABLE = True
+except ImportError:
+    DYNAMIC_HEDGING_AVAILABLE = False
+    logger.warning("Dynamic hedging module not available")
+
+try:
+    # Ensemble RL 모듈  
+    import ensemble_rl
+    from ensemble_rl import (
+        AdvancedEnsemblePredictor, PortfolioRL, BacktestEngine as RLBacktestEngine
+    )
+    ENSEMBLE_RL_AVAILABLE = True
+except ImportError:
+    ENSEMBLE_RL_AVAILABLE = False
+    logger.warning("Ensemble RL module not available")
+
+try:
+    # Z-Score 팩터 분석 모듈
+    import zscore
+    from zscore import FactorZScoreCalculator
+    ZSCORE_AVAILABLE = True
+except ImportError:
+    ZSCORE_AVAILABLE = False
+    logger.warning("Z-Score module not available")
+
 warnings.filterwarnings('ignore')
 logging.basicConfig(level=logging.INFO)
 
@@ -114,6 +146,31 @@ if 'backtest_results' not in st.session_state:
 
 if 'optimization_results' not in st.session_state:
     st.session_state.optimization_results = None
+
+# 추가 분석 모듈 상태 초기화
+if DYNAMIC_HEDGING_AVAILABLE:
+    if 'factor_timing_model' not in st.session_state:
+        st.session_state.factor_timing_model = None
+    if 'volatility_overlay' not in st.session_state:
+        st.session_state.volatility_overlay = None
+    if 'tail_risk_hedging' not in st.session_state:
+        st.session_state.tail_risk_hedging = None
+    if 'hedging_results' not in st.session_state:
+        st.session_state.hedging_results = None
+
+if ENSEMBLE_RL_AVAILABLE:
+    if 'ensemble_predictor' not in st.session_state:
+        st.session_state.ensemble_predictor = None
+    if 'portfolio_rl' not in st.session_state:
+        st.session_state.portfolio_rl = None
+    if 'rl_results' not in st.session_state:
+        st.session_state.rl_results = None
+
+if ZSCORE_AVAILABLE:
+    if 'zscore_calculator' not in st.session_state:
+        st.session_state.zscore_calculator = FactorZScoreCalculator()
+    if 'zscore_results' not in st.session_state:
+        st.session_state.zscore_results = None
 
 # 데이터 로딩 함수
 @st.cache_data
@@ -288,7 +345,7 @@ def render_dashboard():
     다양한 팩터 카테고리와 머신러닝 기법을 활용하여 수익성 있는 투자 전략을 개발할 수 있습니다.
     """)
     
-    # 기능 소개
+    # 기능 소개 - 6개 카드로 확장
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -332,6 +389,76 @@ def render_dashboard():
             </ul>
         </div>
         """, unsafe_allow_html=True)
+    
+    # 두 번째 행 - 새로운 분석 기능들
+    st.markdown("---")
+    col4, col5, col6 = st.columns(3)
+    
+    with col4:
+        if DYNAMIC_HEDGING_AVAILABLE:
+            st.markdown("""
+            <div class="factor-card">
+                <h3>🛡️ 동적 헤지</h3>
+                <p>고급 리스크 관리 전략으로 포트폴리오를 보호합니다.</p>
+                <ul>
+                    <li>팩터 타이밍 모델</li>
+                    <li>변동성 오버레이</li>
+                    <li>테일 리스크 헤지</li>
+                    <li>VaR/CVaR 분석</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="factor-card" style="opacity: 0.6;">
+                <h3>🛡️ 동적 헤지</h3>
+                <p>모듈을 사용할 수 없습니다.</p>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    with col5:
+        if ENSEMBLE_RL_AVAILABLE:
+            st.markdown("""
+            <div class="factor-card">
+                <h3>🤖 AI 투자전략</h3>
+                <p>앙상블 ML과 강화학습을 통한 지능형 투자 결정을 수행합니다.</p>
+                <ul>
+                    <li>앙상블 예측 모델</li>
+                    <li>강화학습 포트폴리오</li>
+                    <li>동적 자산배분</li>
+                    <li>AI 기반 리밸런싱</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="factor-card" style="opacity: 0.6;">
+                <h3>🤖 AI 투자전략</h3>
+                <p>모듈을 사용할 수 없습니다.</p>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    with col6:
+        if ZSCORE_AVAILABLE:
+            st.markdown("""
+            <div class="factor-card">
+                <h3>📈 팩터 스코어링</h3>
+                <p>S&P 방식의 Z-Score를 활용한 전문적인 팩터 분석을 제공합니다.</p>
+                <ul>
+                    <li>밸류 팩터 분석</li>
+                    <li>퀄리티 팩터 분석</li>
+                    <li>모멘텀 팩터 분석</li>
+                    <li>백분위 순위 분석</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="factor-card" style="opacity: 0.6;">
+                <h3>📈 팩터 스코어링</h3>
+                <p>모듈을 사용할 수 없습니다.</p>
+            </div>
+            """, unsafe_allow_html=True)
     
     # 빠른 시작 가이드
     st.markdown("### 🚀 빠른 시작 가이드")
@@ -1312,6 +1439,496 @@ def render_data_management():
             else:
                 st.error("보안상 SELECT 쿼리만 실행할 수 있습니다.")
 
+# 동적 헤지 페이지
+def render_dynamic_hedging():
+    """동적 헤지 페이지"""
+    st.title("🛡️ 동적 헤지 전략")
+    
+    if not DYNAMIC_HEDGING_AVAILABLE:
+        st.error("동적 헤지 모듈을 사용할 수 없습니다. 필요한 의존성을 설치해주세요.")
+        return
+    
+    if st.session_state.sample_data is None:
+        st.warning("⚠️ 먼저 시장 데이터를 로드해주세요.")
+        return
+    
+    data = st.session_state.sample_data
+    
+    st.markdown("""
+    ### 🎯 동적 헤지 전략 개요
+    
+    동적 헤지는 시장 상황에 따라 리스크 노출을 조정하는 고급 포트폴리오 관리 기법입니다.
+    """)
+    
+    # 헤지 전략 선택
+    st.subheader("📊 헤지 전략 선택")
+    
+    hedging_strategy = st.selectbox(
+        "헤지 전략",
+        ["팩터 타이밍", "변동성 오버레이", "테일 리스크 헤지"],
+        help="적용할 헤지 전략을 선택하세요"
+    )
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        if hedging_strategy == "팩터 타이밍":
+            st.markdown("#### 팩터 타이밍 모델 설정")
+            
+            timing_window = st.slider("타이밍 윈도우", 20, 252, 60)
+            threshold = st.slider("신호 임계값", 0.1, 2.0, 0.5)
+            
+            if st.button("팩터 타이밍 실행"):
+                with st.spinner("팩터 타이밍 모델을 실행하는 중..."):
+                    try:
+                        # 팩터 타이밍 모델 생성
+                        model = FactorTimingModel(window=timing_window)
+                        
+                        # 간단한 팩터 데이터 생성 (실제로는 계산된 팩터 사용)
+                        factor_data = data['returns'].rolling(20).mean()
+                        
+                        # 타이밍 신호 생성
+                        timing_signals = model.generate_signals(factor_data, threshold)
+                        
+                        st.session_state.hedging_results = {
+                            'strategy': 'factor_timing',
+                            'signals': timing_signals,
+                            'model': model
+                        }
+                        
+                        st.success("팩터 타이밍 모델 실행 완료!")
+                        
+                    except Exception as e:
+                        st.error(f"팩터 타이밍 모델 오류: {str(e)}")
+        
+        elif hedging_strategy == "변동성 오버레이":
+            st.markdown("#### 변동성 오버레이 설정")
+            
+            vol_window = st.slider("변동성 계산 윈도우", 10, 100, 30)
+            vol_target = st.slider("목표 변동성 (%)", 5, 30, 15) / 100
+            
+            if st.button("변동성 오버레이 실행"):
+                with st.spinner("변동성 오버레이를 실행하는 중..."):
+                    try:
+                        # 변동성 오버레이 모델 생성
+                        overlay = VolatilityOverlay(vol_window=vol_window, target_vol=vol_target)
+                        
+                        # 포지션 조정
+                        adjusted_positions = overlay.adjust_positions(
+                            data['returns'], 
+                            data['returns'].mean(axis=1)  # 균등가중 포트폴리오
+                        )
+                        
+                        st.session_state.hedging_results = {
+                            'strategy': 'volatility_overlay',
+                            'adjusted_positions': adjusted_positions,
+                            'overlay': overlay
+                        }
+                        
+                        st.success("변동성 오버레이 실행 완료!")
+                        
+                    except Exception as e:
+                        st.error(f"변동성 오버레이 오류: {str(e)}")
+        
+        elif hedging_strategy == "테일 리스크 헤지":
+            st.markdown("#### 테일 리스크 헤지 설정")
+            
+            var_level = st.slider("VaR 신뢰수준 (%)", 90, 99, 95) / 100
+            hedge_threshold = st.slider("헤지 임계값", 0.01, 0.1, 0.05)
+            
+            if st.button("테일 리스크 헤지 실행"):
+                with st.spinner("테일 리스크 헤지를 실행하는 중..."):
+                    try:
+                        # 테일 리스크 헤지 모델 생성
+                        tail_hedge = TailRiskHedging(var_level=var_level)
+                        
+                        # 리스크 계산
+                        portfolio_returns = data['returns'].mean(axis=1)
+                        var_estimates = tail_hedge.calculate_var(portfolio_returns)
+                        
+                        # 헤지 신호
+                        hedge_signals = tail_hedge.generate_hedge_signals(
+                            portfolio_returns, 
+                            var_estimates,
+                            threshold=hedge_threshold
+                        )
+                        
+                        st.session_state.hedging_results = {
+                            'strategy': 'tail_risk_hedge',
+                            'var_estimates': var_estimates,
+                            'hedge_signals': hedge_signals,
+                            'tail_hedge': tail_hedge
+                        }
+                        
+                        st.success("테일 리스크 헤지 실행 완료!")
+                        
+                    except Exception as e:
+                        st.error(f"테일 리스크 헤지 오류: {str(e)}")
+    
+    with col2:
+        st.markdown("#### 헤지 결과")
+        
+        if st.session_state.hedging_results:
+            results = st.session_state.hedging_results
+            strategy = results['strategy']
+            
+            if strategy == 'factor_timing':
+                signals = results['signals']
+                st.metric("활성 신호", f"{(signals != 0).sum()}")
+                st.line_chart(signals.tail(50))
+            
+            elif strategy == 'volatility_overlay':
+                positions = results['adjusted_positions']
+                current_vol = positions.std() * np.sqrt(252)
+                st.metric("현재 변동성", f"{current_vol:.2%}")
+                st.line_chart(positions.tail(50))
+            
+            elif strategy == 'tail_risk_hedge':
+                var_data = results['var_estimates']
+                signals = results['hedge_signals']
+                st.metric("현재 VaR", f"{var_data.iloc[-1]:.3f}")
+                st.metric("헤지 신호", f"{signals.iloc[-1]:.2f}")
+        else:
+            st.info("헤지 전략을 실행해주세요.")
+
+# AI 투자전략 페이지
+def render_ai_investment():
+    """AI 투자전략 페이지"""
+    st.title("🤖 AI 투자전략")
+    
+    if not ENSEMBLE_RL_AVAILABLE:
+        st.error("AI 투자전략 모듈을 사용할 수 없습니다. 필요한 의존성을 설치해주세요.")
+        return
+    
+    if st.session_state.sample_data is None:
+        st.warning("⚠️ 먼저 시장 데이터를 로드해주세요.")
+        return
+    
+    data = st.session_state.sample_data
+    
+    st.markdown("""
+    ### 🎯 AI 기반 투자전략 개요
+    
+    앙상블 머신러닝과 강화학습을 결합하여 지능형 투자 결정을 수행합니다.
+    """)
+    
+    # AI 전략 선택
+    st.subheader("🧠 AI 전략 선택")
+    
+    ai_strategy = st.selectbox(
+        "AI 전략",
+        ["앙상블 예측", "강화학습 포트폴리오"],
+        help="적용할 AI 전략을 선택하세요"
+    )
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        if ai_strategy == "앙상블 예측":
+            st.markdown("#### 앙상블 예측 모델 설정")
+            
+            lookback = st.slider("학습 기간", 100, 500, 252)
+            n_models = st.slider("모델 수", 3, 10, 5)
+            
+            if st.button("앙상블 예측 실행"):
+                with st.spinner("앙상블 모델을 훈련하는 중..."):
+                    try:
+                        # 앙상블 예측기 생성
+                        predictor = AdvancedEnsemblePredictor(n_models=n_models)
+                        
+                        # 특성 데이터 준비
+                        features = pd.DataFrame({
+                            'returns_5d': data['returns'].rolling(5).mean(),
+                            'returns_20d': data['returns'].rolling(20).mean(),
+                            'volatility_20d': data['returns'].rolling(20).std(),
+                            'volume_ratio': data['volumes'] / data['volumes'].rolling(20).mean()
+                        })
+                        
+                        # 예측 실행
+                        predictions = predictor.predict_returns(
+                            features.dropna(), 
+                            data['returns'].dropna(),
+                            lookback=lookback
+                        )
+                        
+                        st.session_state.rl_results = {
+                            'strategy': 'ensemble_prediction',
+                            'predictions': predictions,
+                            'predictor': predictor
+                        }
+                        
+                        st.success("앙상블 예측 완료!")
+                        
+                    except Exception as e:
+                        st.error(f"앙상블 예측 오류: {str(e)}")
+        
+        elif ai_strategy == "강화학습 포트폴리오":
+            st.markdown("#### 강화학습 포트폴리오 설정")
+            
+            episodes = st.slider("학습 에피소드", 100, 1000, 500)
+            learning_rate = st.slider("학습률", 0.001, 0.1, 0.01, format="%.3f")
+            
+            if st.button("강화학습 실행"):
+                with st.spinner("강화학습 에이전트를 훈련하는 중..."):
+                    try:
+                        # RL 포트폴리오 생성
+                        rl_portfolio = PortfolioRL(
+                            n_assets=len(data['returns'].columns),
+                            learning_rate=learning_rate
+                        )
+                        
+                        # 훈련 실행
+                        trained_agent = rl_portfolio.train(
+                            data['returns'].dropna(),
+                            episodes=episodes
+                        )
+                        
+                        # 포트폴리오 가중치 생성
+                        optimal_weights = rl_portfolio.get_portfolio_weights(
+                            data['returns'].tail(1)
+                        )
+                        
+                        st.session_state.rl_results = {
+                            'strategy': 'reinforcement_learning',
+                            'weights': optimal_weights,
+                            'agent': trained_agent,
+                            'rl_portfolio': rl_portfolio
+                        }
+                        
+                        st.success("강화학습 훈련 완료!")
+                        
+                    except Exception as e:
+                        st.error(f"강화학습 오류: {str(e)}")
+    
+    with col2:
+        st.markdown("#### AI 결과")
+        
+        if st.session_state.rl_results:
+            results = st.session_state.rl_results
+            strategy = results['strategy']
+            
+            if strategy == 'ensemble_prediction':
+                predictions = results['predictions']
+                if isinstance(predictions, pd.DataFrame):
+                    st.dataframe(predictions.tail())
+                    st.line_chart(predictions.mean(axis=1).tail(50))
+                else:
+                    st.line_chart(predictions.tail(50))
+            
+            elif strategy == 'reinforcement_learning':
+                weights = results['weights']
+                weights_df = pd.DataFrame({
+                    '자산': weights.index,
+                    '비중 (%)': weights.values * 100
+                })
+                st.dataframe(weights_df)
+                
+                # 가중치 차트
+                fig = px.pie(weights_df, values='비중 (%)', names='자산', title="RL 포트폴리오")
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("AI 전략을 실행해주세요.")
+
+# 팩터 스코어링 페이지
+def render_factor_scoring():
+    """팩터 스코어링 페이지"""
+    st.title("📈 팩터 스코어링")
+    
+    if not ZSCORE_AVAILABLE:
+        st.error("팩터 스코어링 모듈을 사용할 수 없습니다. 필요한 의존성을 설치해주세요.")
+        return
+    
+    if st.session_state.sample_data is None:
+        st.warning("⚠️ 먼저 시장 데이터를 로드해주세요.")
+        return
+    
+    data = st.session_state.sample_data
+    
+    st.markdown("""
+    ### 🎯 S&P 방식 팩터 스코어링
+    
+    S&P에서 사용하는 Z-Score 방법론을 활용하여 전문적인 팩터 분석을 수행합니다.
+    """)
+    
+    # 팩터 유형 선택
+    st.subheader("📊 팩터 유형 선택")
+    
+    factor_type = st.selectbox(
+        "팩터 유형",
+        ["밸류 팩터", "퀄리티 팩터", "모멘텀 팩터"],
+        help="분석할 팩터 유형을 선택하세요"
+    )
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        if factor_type == "밸류 팩터":
+            st.markdown("#### 밸류 팩터 분석")
+            
+            if st.button("밸류 팩터 계산"):
+                with st.spinner("밸류 팩터를 계산하는 중..."):
+                    try:
+                        calculator = st.session_state.zscore_calculator
+                        
+                        # 밸류 팩터 계산
+                        factor_data = calculator.calculate_value_factor(
+                            data['prices'], 
+                            data['volumes']
+                        )
+                        
+                        if not factor_data.empty:
+                            # Z-Score 계산
+                            value_scores = calculator.calculate_factor_zscore(
+                                factor_data, factor_type='value'
+                            )
+                            
+                            st.session_state.zscore_results = {
+                                'factor_type': 'value',
+                                'scores': value_scores,
+                                'raw_data': factor_data,
+                                'percentiles': calculator.calculate_percentile_rank(value_scores),
+                                'statistics': calculator.get_factor_statistics(value_scores)
+                            }
+                            
+                            st.success("밸류 팩터 계산 완료!")
+                        else:
+                            st.error("밸류 팩터 계산에 실패했습니다.")
+                        
+                    except Exception as e:
+                        st.error(f"밸류 팩터 계산 오류: {str(e)}")
+        
+        elif factor_type == "퀄리티 팩터":
+            st.markdown("#### 퀄리티 팩터 분석")
+            
+            if st.button("퀄리티 팩터 계산"):
+                with st.spinner("퀄리티 팩터를 계산하는 중..."):
+                    try:
+                        calculator = st.session_state.zscore_calculator
+                        
+                        # 퀄리티 팩터 계산
+                        factor_data = calculator.calculate_quality_factor(
+                            data['prices'],
+                            data['volumes']
+                        )
+                        
+                        if not factor_data.empty:
+                            # Z-Score 계산
+                            quality_scores = calculator.calculate_factor_zscore(
+                                factor_data, factor_type='quality'
+                            )
+                            
+                            st.session_state.zscore_results = {
+                                'factor_type': 'quality',
+                                'scores': quality_scores,
+                                'raw_data': factor_data,
+                                'percentiles': calculator.calculate_percentile_rank(quality_scores),
+                                'statistics': calculator.get_factor_statistics(quality_scores)
+                            }
+                            
+                            st.success("퀄리티 팩터 계산 완료!")
+                        else:
+                            st.error("퀄리티 팩터 계산에 실패했습니다.")
+                        
+                    except Exception as e:
+                        st.error(f"퀄리티 팩터 계산 오류: {str(e)}")
+        
+        elif factor_type == "모멘텀 팩터":
+            st.markdown("#### 모멘텀 팩터 분석")
+            
+            if st.button("모멘텀 팩터 계산"):
+                with st.spinner("모멘텀 팩터를 계산하는 중..."):
+                    try:
+                        calculator = st.session_state.zscore_calculator
+                        
+                        # 모멘텀 팩터 계산
+                        factor_data = calculator.calculate_momentum_factor(data['prices'])
+                        
+                        if not factor_data.empty:
+                            # Z-Score 계산
+                            momentum_scores = calculator.calculate_factor_zscore(
+                                factor_data, factor_type='momentum'
+                            )
+                            
+                            st.session_state.zscore_results = {
+                                'factor_type': 'momentum',
+                                'scores': momentum_scores,
+                                'raw_data': factor_data,
+                                'percentiles': calculator.calculate_percentile_rank(momentum_scores),
+                                'statistics': calculator.get_factor_statistics(momentum_scores)
+                            }
+                            
+                            st.success("모멘텀 팩터 계산 완료!")
+                        else:
+                            st.error("모멘텀 팩터 계산에 실패했습니다.")
+                        
+                    except Exception as e:
+                        st.error(f"모멘텀 팩터 계산 오류: {str(e)}")
+    
+    with col2:
+        st.markdown("#### 팩터 점수")
+        
+        if st.session_state.zscore_results:
+            results = st.session_state.zscore_results
+            scores = results['scores']
+            factor_type = results['factor_type']
+            
+            # 팩터 설명 표시
+            calculator = st.session_state.zscore_calculator
+            description = calculator.get_factor_description(factor_type)
+            st.info(description)
+            
+            # 최신 점수 표시
+            if not scores.empty:
+                st.markdown("**최근 Z-Score**")
+                latest_scores = scores.tail(10)
+                st.dataframe(pd.DataFrame({
+                    'Z-Score': latest_scores,
+                    'Date': latest_scores.index.strftime('%Y-%m-%d') if hasattr(latest_scores.index, 'strftime') else latest_scores.index
+                }))
+                
+                # 시계열 차트
+                st.line_chart(scores.tail(100), height=200)
+                
+                # 통계 정보 표시
+                if 'statistics' in results:
+                    stats = results['statistics']
+                    st.markdown("**통계 정보**")
+                    
+                    col_stat1, col_stat2 = st.columns(2)
+                    with col_stat1:
+                        st.metric("평균", f"{stats.get('mean', 0):.3f}")
+                        st.metric("표준편차", f"{stats.get('std', 0):.3f}")
+                        st.metric("왜도", f"{stats.get('skewness', 0):.3f}")
+                    
+                    with col_stat2:
+                        st.metric("중앙값", f"{stats.get('q50', 0):.3f}")
+                        st.metric("범위", f"{stats.get('min', 0):.2f}~{stats.get('max', 0):.2f}")
+                        st.metric("첨도", f"{stats.get('kurtosis', 0):.3f}")
+                
+                # 백분위 순위 표시
+                if 'percentiles' in results:
+                    percentiles = results['percentiles']
+                    if not percentiles.empty:
+                        current_percentile = percentiles.iloc[-1]
+                        st.markdown("**현재 백분위 순위**")
+                        st.metric("백분위", f"{current_percentile:.1f}%")
+                        
+                        # 백분위 분포 히스토그램
+                        st.markdown("**백분위 분포**")
+                        hist_data = percentiles.dropna()
+                        if len(hist_data) > 0:
+                            fig = px.histogram(
+                                x=hist_data, 
+                                nbins=20, 
+                                title="백분위 순위 분포"
+                            )
+                            fig.update_layout(height=200)
+                            st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("계산된 점수가 없습니다.")
+        else:
+            st.info("팩터를 계산해주세요.")
+
 def render_enhanced_factors(data, category):
     """향상된 팩터 인터페이스"""
     st.subheader(f"🔬 {category.replace('_', ' ').title()} 팩터")
@@ -1465,9 +2082,19 @@ def main():
     render_sidebar()
     
     # 페이지 네비게이션
+    page_options = ["대시보드", "팩터 생성", "백테스팅", "포트폴리오 최적화", "데이터 관리"]
+    
+    # 사용 가능한 모듈에 따라 페이지 추가
+    if DYNAMIC_HEDGING_AVAILABLE:
+        page_options.append("동적 헤지")
+    if ENSEMBLE_RL_AVAILABLE:
+        page_options.append("AI 투자전략")
+    if ZSCORE_AVAILABLE:
+        page_options.append("팩터 스코어링")
+    
     page = st.sidebar.selectbox(
         "페이지 선택",
-        ["대시보드", "팩터 생성", "백테스팅", "포트폴리오 최적화", "데이터 관리"],
+        page_options,
         help="원하는 기능의 페이지를 선택하세요"
     )
     
@@ -1482,6 +2109,12 @@ def main():
         render_portfolio_optimization()
     elif page == "데이터 관리":
         render_data_management()
+    elif page == "동적 헤지" and DYNAMIC_HEDGING_AVAILABLE:
+        render_dynamic_hedging()
+    elif page == "AI 투자전략" and ENSEMBLE_RL_AVAILABLE:
+        render_ai_investment()
+    elif page == "팩터 스코어링" and ZSCORE_AVAILABLE:
+        render_factor_scoring()
 
 if __name__ == "__main__":
     main()
